@@ -1,0 +1,6 @@
+# vsim -coverage -do {run -all; coverage save out.ucdb; quit} -c tb_top 
+# ** Note: (vsim-3812) Design is being optimized...
+# 
+# ** Error: Failed to find design unit work.tb_top.
+# Optimization failed
+# Error loading design
