@@ -62,8 +62,10 @@ module cpu_connect_wb (
                         wb_adr_o <= rw_address;
                         wb_we_o  <= write_request;
                         wb_dat_o <= write_data;
-                        wb_sel_o <= write_strobe;
-
+                        if(read_request)
+                            wb_sel_o <= 4'b1111;
+                        else
+                            wb_sel_o <= write_strobe;
                         state    <= STATE_WAIT_ACK;
                     end
                 end

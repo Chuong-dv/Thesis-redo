@@ -1,2 +1,6 @@
 sim/work/
 .vscode/
+sim/xelab.log
+sim/xelab.pb
+sim/xvlog.log
+sim/xvlog.pb

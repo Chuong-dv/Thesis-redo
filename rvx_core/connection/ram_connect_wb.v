@@ -15,7 +15,7 @@ module ram_connect_wb #(
     input  wire         wb_stb_i,
     input  wire         wb_cyc_i,
     output wire         wb_stall_o,
-    output reg          wb_ack_o
+    output wire          wb_ack_o
 );
 
     // RAM interface
