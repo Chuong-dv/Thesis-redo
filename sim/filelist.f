@@ -16,3 +16,5 @@
 ../rvx_core/rvx/rvx_ram_wb.v
 ../rvx_core/rvx/rvx_spi_wb.v
 ../rvx_core/rvx/rvx_uart_wb.v
+
+tb/wb_ascon_tb.sv

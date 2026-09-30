@@ -1,6 +1,21 @@
-# vsim -coverage -do {run -all; coverage save out.ucdb; quit} -c tb_top 
+# vsim -coverage -do {run -all; coverage save out.ucdb; quit} -c work.wb_ascon_tb 
 # ** Note: (vsim-3812) Design is being optimized...
 # 
-# ** Error: Failed to find design unit work.tb_top.
-# Optimization failed
-# Error loading design
+# ** Note: (vopt-143) Recognized 1 FSM in module "ascon_core(fast)".
+# 
+# //  Questa Sim-64
+# //  Version 10.2c Unknown Platform Jul 19 2013
+# //
+# //  Copyright 1991-2013 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  THIS WORK CONTAINS TRADE SECRET AND PROPRIETARY INFORMATION
+# //  WHICH IS THE PROPERTY OF MENTOR GRAPHICS CORPORATION OR ITS
+# //  LICENSORS AND IS SUBJECT TO LICENSE TERMS.
+# //
+# Loading sv_std.std
+# Loading work.wb_ascon_tb(fast)
+# run -all 
+# data out: 0
+# ** Note: $finish    : tb/wb_ascon_tb.sv(105)
+#    Time: 111 ns  Iteration: 0  Instance: /wb_ascon_tb
