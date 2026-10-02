@@ -16,16 +16,11 @@ module ascon_permutation (
     reg [319:0] current_state;
     reg [3:0]   round_cnt;
     reg         busy;
-    
-    // --- OPTIMIZATION START: Registered Round Constant ---
-    // Thay vì tính toán t? h?p rc_idx = (12 - rounds) + cnt r?i tra Mux,
-    // chúng ta n?p giá tr? ban ??u và tr? ?i 0x0F m?i vòng (vì h?ng s? ASCON gi?m ??u: F0, E1, D2...)
-    // Vi?c này lo?i b? hoàn toàn ?? tr? c?a Adder và Mux kh?i ???ng Critical Path.
+
     
     reg [7:0]   round_const_reg;
-    reg [7:0]   round_const_next; // Combinational logic cho giá tr? kh?i t?o
+    reg [7:0]   round_const_next; // Combinational logic cho giï¿½ tr? kh?i t?o
 
-    // Tính toán giá tr? h?ng s? kh?i ?i?m (Ch? dùng khi Start, không ?nh h??ng Timing vòng l?p)
     wire [3:0] start_rc_idx = 4'd12 - rounds;
     
     always @(*) begin
@@ -51,9 +46,9 @@ module ascon_permutation (
         if (!rst_n) begin
             round_const_reg <= 8'd0;
         end else if (start) begin
-            round_const_reg <= round_const_next; // N?p giá tr? ??u
+            round_const_reg <= round_const_next; // N?p giï¿½ tr? ??u
         end else if (busy) begin
-            round_const_reg <= round_const_reg - 8'h0f; // Các h?ng s? Ascon cách nhau 15 ??n v? (0x0F)
+            round_const_reg <= round_const_reg - 8'h0f; // Cï¿½c h?ng s? Ascon cï¿½ch nhau 15 ??n v? (0x0F)
         end
     end
 
@@ -68,7 +63,7 @@ module ascon_permutation (
     wire [63:0] x4_in = current_state[63:0];
 
     // --- 1. Constant Addition ---
-    // Bây gi? round_constant ??n t? thanh ghi, ?? tr? g?n nh? b?ng 0.
+    // Bï¿½y gi? round_constant ??n t? thanh ghi, ?? tr? g?n nh? b?ng 0.
     wire [63:0] x2_c = x2_in ^ round_constant;
 
     // --- 2. Substitution Layer (Standard Ascon S-box) ---

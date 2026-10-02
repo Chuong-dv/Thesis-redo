@@ -9,13 +9,13 @@ module ram_connect_wb #(
     //Wishbone interface
     input  wire [31:0]  wb_adr_i,
     input  wire [31:0]  wb_dat_i,
-    output reg  [31:0]  wb_dat_o,
+    output wire [31:0]  wb_dat_o,
     input  wire         wb_we_i,
     input  wire [3:0]   wb_sel_i,
     input  wire         wb_stb_i,
     input  wire         wb_cyc_i,
     output wire         wb_stall_o,
-    output wire          wb_ack_o
+    output wire         wb_ack_o
 );
 
     // RAM interface

@@ -4,3 +4,7 @@ sim/xelab.log
 sim/xelab.pb
 sim/xvlog.log
 sim/xvlog.pb
+*.log
+*.jou
+xsim.dir/
+tb_sim.wdb

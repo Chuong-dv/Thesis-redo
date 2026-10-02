@@ -14,8 +14,8 @@ module uart_connect_wb #(
     input  wire [3:0]   wb_sel_i,
     input  wire         wb_stb_i,
     input  wire         wb_cyc_i,
-    output reg          wb_stall_o,
-    output reg          wb_ack_o,
+    output wire          wb_stall_o,
+    output wire          wb_ack_o,
 
     //UART External Pins & interrupt
     input  wire         uart_rx,
