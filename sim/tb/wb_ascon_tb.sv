@@ -106,7 +106,11 @@ module wb_ascon_tb;
     logic [255:0]   ad_v, pt_v, ct_v;
     int             adlen_v, ptlen_v;
     int             cnt, n_pass, n_fail;
+    bit             no_wait;
+    int             stall_cnt;
+    bit             dec;
     logic           vec_ok;
+    int             last_stall;
 
     //get byte
     function automatic logic [7:0] get_byte(input logic [255:0] v, input int len, input int i);
@@ -174,8 +178,9 @@ module wb_ascon_tb;
         int nfull, remb, i;
         logic [63:0] got, expv;
         logic [127:0] got_tag;
-
+        
         vec_ok = 1;
+        stall_cnt = 0;
         do_reset;
 
         //1. Key & nonce
@@ -185,7 +190,7 @@ module wb_ascon_tb;
         end
 
         //2. start. bit0 = start, bit2 = is_ad
-        wb_write(32'h00, (adlen_v > 0) ? 32'h5 : 32'h1, 4'hF);
+        wb_write(32'h00, ((adlen_v > 0) ? 32'h5 : 32'h1) | (dec ? 32'h2 : 32'h0), 4'hF);
         wait_status(32'h1);
 
         //3. bo qua neu AD = null
@@ -197,26 +202,28 @@ module wb_ascon_tb;
             end
             send_block(ad_v, adlen_v, 8*nfull, remb, 1);
             wait_status(32'h1);
-            wb_write(32'h00, 32'h0, 4'hF);
+            wb_write(32'h00, dec ? 32'h2 : 32'h0, 4'hF);
         end
 
         //4. Plaintext
         nfull = ptlen_v / 8;
         remb = ptlen_v % 8;
         for (i = 0; i < nfull; i++) begin
-            send_block(pt_v, ptlen_v, 8*i, 8, 0);
-            wait_status(32'h1);
-            read_data64(got);
-            expv = pack64(ct_v, ptlen_v, 8*i, 8);
-            expect64($sformatf("ct block %0d", i), got, expv, 8);
+            send_block(dec ? ct_v:pt_v, ptlen_v, 8*i, 8, 0);
+            if(!no_wait) begin
+                wait_status(32'h1);
+                read_data64(got);
+                expv = pack64(dec ? pt_v : ct_v, ptlen_v, 8*i, 8);
+                expect64($sformatf("%s block %0d",dec ? "pt" : "ct", i), got, expv, 8);
+            end
         end
-        send_block(pt_v, ptlen_v, 8*nfull, remb, 1);
+        send_block(dec ? ct_v:pt_v, ptlen_v, 8*nfull, remb, 1);
         wait_status(32'h2);
 
         //5.ciphertext
         if(remb > 0) begin
             read_data64(got);
-            expv = pack64(ct_v, ptlen_v, 8*nfull, remb);
+            expv = pack64(dec ? pt_v:ct_v, ptlen_v, 8*nfull, remb);
             expect64("ct last block", got, expv, remb);
         end
         read_tag128(got_tag);
@@ -225,8 +232,97 @@ module wb_ascon_tb;
             vec_ok = 0;
         end
 
+        if (no_wait && ptlen_v >= 8 && stall_cnt == 0) begin
+            $display("[FAIL] #%0d ptlen=%0d khong co stall nao", cnt, ptlen_v);
+            vec_ok = 0;
+        end
+
+        if (stall_cnt != last_stall) begin
+            $display("[INFO] ptlen=%0d adlen=%0d stall_cnt=%0d", ptlen_v, adlen_v, stall_cnt);
+            last_stall = stall_cnt;
+        end
+
         if(vec_ok) n_pass++;
         else n_fail++;
+    endtask
+
+    //--Task Kiem tra
+    task automatic check32(string what, logic [31:0] got, logic [31:0] expv);
+        if(got !== expv) begin
+            $display("[FAIL] %s got=%h exp=%h", what, got, expv);
+            n_fail++;
+        end else begin
+            $display("[PASS] %s got=%h", what, got);
+            n_pass++;
+        end
+    endtask
+
+    task automatic check128(string what, logic [127:0] got, logic [127:0] expv);
+        if (got !== expv) begin
+            $display("[FAIL] %s got=%h exp=%h", what, got, expv);
+            n_fail++;
+        end else begin
+            $display("[PASS] %s", what);
+            n_pass++;
+        end
+    endtask
+
+    //Task kiem tra irq
+    task automatic test_irq_clear;
+        logic [31:0] status;
+        logic [127:0] got_tag;
+        key_v   = 128'h000102030405060708090A0B0C0D0E0F;
+        nonce_v = 128'h101112131415161718191A1B1C1D1E1F;
+        do_reset;
+        for (int j = 0; j < 4; j++) begin
+            wb_write(32'h10 + 4*j, key_v[32*j +: 32], 4'hF);
+            wb_write(32'h20 + 4*j, nonce_v[32*j +: 32], 4'hF);
+        end
+        wb_write(32'h0, 32'h1, 4'hF);
+        wait_status(32'h1);
+        wb_write(32'h54, 32'h0, 4'hF);
+        wait_status(32'h2);
+        wb_read(32'h4, status);
+        check32("irq bi truoc khi xoa", status & 32'h2, 32'h2);
+        check32("chan irq_done", {31'h0,irq_done}, 32'h1);
+        wb_write(32'h0, 32'h0, 4'hF);
+        wb_read(32'h4, status);
+        check32("irq sau khi tat", status & 32'h2, 32'h0);
+        check32("chan irq_done tat", {31'h0, irq_done}, 32'h0);
+        read_tag128(got_tag);
+
+        check128("tag con nguyen sau khi xoa irq", got_tag, 128'h38CCA290D1F2EF3DF9C8531946499037);
+
+    endtask
+
+    //Check soft reset
+    task automatic test_soft_reset;
+        logic [31:0] status;
+        logic [127:0] got_tag;
+        key_v   = 128'h000102030405060708090A0B0C0D0E0F;
+        nonce_v = 128'h101112131415161718191A1B1C1D1E1F;
+        do_reset;
+        for (int j = 0; j < 4; j++) begin
+            wb_write(32'h10 + 4*j, key_v[32*j +: 32], 4'hF);
+            wb_write(32'h20 + 4*j, nonce_v[32*j +: 32], 4'hF);
+        end
+        wb_write(32'h0, 32'h1, 4'hF);
+        wait_status(32'h1);
+        wb_write(32'h40, 32'hDEADBEEF, 4'hF);
+        wb_write(32'h00, 32'h10, 4'hF);
+        wb_read(32'h04, status);
+        check32("kiem tra trang thai", status & 32'h3, 32'h0);
+        for (int k = 0; k < 4; k++) begin
+            wb_write(32'h10 + 4*k, key_v[32*k +: 32], 4'hF);
+            wb_write(32'h20 + 4*k, nonce_v[32*k +: 32], 4'hF);
+        end
+        wb_write(32'h0, 32'h1, 4'hF);
+        wait_status(32'h1);
+        wb_write(32'h54, 32'h0, 4'hF);
+        wait_status(32'h2);
+        read_tag128(got_tag);
+
+        check128("tag dung sau soft reset", got_tag, 128'h38CCA290D1F2EF3DF9C8531946499037);
     endtask
 
     //---TIMEOUT 
@@ -239,6 +335,12 @@ module wb_ascon_tb;
     //--initial chinh
     string  path;
     int     fd, r;
+    string  test_name;
+    
+    //Stall count
+    always @(posedge clk) begin
+        if(wb_cyc_i && wb_stb_i && wb_stall_o) stall_cnt++;
+    end
 
     initial begin
         wb_adr_i = 0;
@@ -249,26 +351,32 @@ module wb_ascon_tb;
         wb_cyc_i = 0;
         rst      = 1;
         cnt      = 0;
+        last_stall = -1;
         n_pass   = 0;
         n_fail   = 0;
+        if(!$value$plusargs("TEST=%s", test_name)) test_name = "kat";
 
-        if (!$value$plusargs("KAT=%s", path)) path = "kat128.txt";
-        fd = $fopen (path, "r");
-        if (fd == 0) $fatal(1, "khong mo duoc file KAT: %s", path);
-
-        while (!$feof(fd)) begin
-            r = $fscanf(fd, "%h %h %d %d %h %h %h %h\n",
-                        key_v, nonce_v, adlen_v, ptlen_v, ad_v, pt_v, ct_v, tag_v);
-            if (r == 8) begin
-            cnt++;
-            run_vector;
+        dec      = (test_name == "decrypt");
+        $display("MODE: test=%s dec=%0d", test_name, dec);
+        if (test_name == "kat" || test_name == "stall" || test_name == "decrypt") begin
+            no_wait = (test_name == "stall");
+            if (!$value$plusargs("KAT=%s", path)) path = "kat128.txt";
+            fd = $fopen(path, "r");
+            if (fd == 0) $fatal(1, "khong mo duoc file KAT: %s", path);
+            while (!$feof(fd)) begin
+                r = $fscanf(fd, "%h %h %d %d %h %h %h %h\n",
+                            key_v, nonce_v, adlen_v, ptlen_v, ad_v, pt_v, ct_v, tag_v);
+                if (r == 8) begin cnt++; run_vector; end
             end
+            $fclose(fd);
         end
-        $fclose(fd);
+        else if (test_name == "irq_clear") test_irq_clear;
+        else if (test_name == "soft_reset") test_soft_reset;
+        else $fatal(1, "TEST khong ton tai: %s", test_name);
         
         $display("KAT SUMMARY: total=%0d pass=%0d fail=%0d", cnt, n_pass, n_fail);
-        if (n_fail == 0 && cnt > 0) $display("TEST PASSED");
-        else                        $display("TEST FAILED");
+        if (n_fail == 0 && (n_pass + n_fail) > 0)   $display("TEST PASSED");
+        else                                        $display("TEST FAILED");
         $finish;
 
     end
