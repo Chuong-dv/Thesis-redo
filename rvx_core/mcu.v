@@ -39,6 +39,10 @@ module mcu #(
     wire [NUM_SLAVES-1:0]    wb_slaves_we_o, wb_slaves_cyc_o, wb_slaves_stb_o, wb_slaves_ack_i;
     wire irq_mtimer, irq_uart, irq_ascon;
 
+    wire [31:0] ascon_p_adr, ascon_p_dat_w, ascon_p_dat_r;
+    wire [3:0]  acon_p_sel;
+    wire        ascon_p_we, ascon_p_cyc, ascon_p_stb, ascon_p_stall, ascon_p_ack;
+
     // RVX Core
     rvx_core_wb #(.BOOT_ADDRESS(BOOT_ADDRESS)) u_core (
         .clk_i(clk_i), .rst_i(rst_i), .halt(halt),
@@ -61,7 +65,7 @@ module mcu #(
         .write_request(cpu_write_request), .write_response(cpu_write_response),
         .wb_adr_o(wb_m_adr_o), .wb_dat_o(wb_m_dat_o), .wb_dat_i(wb_m_dat_i),
         .wb_we_o (wb_m_we_o), .wb_sel_o(wb_m_sel_o), .wb_stb_o(wb_m_stb_o),
-        .wb_cyc_o(wb_m_cyc_o), .wb_ack_i(wb_m_ack_i)
+        .wb_cyc_o(wb_m_cyc_o),.wb_stall_i(1'b1), .wb_ack_i(wb_m_ack_i)
     );
 
     // Wishbone Interconnect
@@ -160,17 +164,23 @@ module mcu #(
     );
 
     
+    ascon_wb_adapter u_ascon_adapter (
+        .clk_i(clk_i), .rst_i(rst_i),
+        .c_adr_i(wb_slaves_adr_o[5*32 +: 32]), .c_dat_i(wb_slaves_dat_o[5*32 +: 32]),
+        .c_dat_o(wb_slaves_dat_i[5*32 +: 32]), .c_sel_i(wb_slaves_sel_o[5*4 +: 4]),
+        .c_we_i(wb_slaves_we_o[5]), .c_cyc_i(wb_slaves_cyc_o[5]),
+        .c_stb_i(wb_slaves_stb_o[5]), .c_ack_o(wb_slaves_ack_i[5]),
+        .p_adr_o(ascon_p_adr), .p_dat_o(ascon_p_dat_w), .p_dat_i(ascon_p_dat_r),
+        .p_sel_o(ascon_p_sel), .p_we_o(ascon_p_we), .p_cyc_o(ascon_p_cyc),
+        .p_stb_o(ascon_p_stb), .p_stall_i(ascon_p_stall), .p_ack_i(ascon_p_ack)
+    );
+
     ascon_connect_wb u_ascon (
-        .wb_clk_i(clk_i), 
-        .wb_rst_i(rst_i),
-        .wb_adr_i(wb_slaves_adr_o[5*32 +: 32]), 
-        .wb_dat_i(wb_slaves_dat_o[5*32 +: 32]), 
-        .wb_dat_o(wb_slaves_dat_i[5*32 +: 32]), 
-        .wb_sel_i(wb_slaves_sel_o[5*4 +: 4]),
-        .wb_we_i (wb_slaves_we_o[5]), 
-        .wb_stb_i(wb_slaves_stb_o[5]), 
-        .wb_cyc_i(wb_slaves_cyc_o[5]), 
-        .wb_ack_o(wb_slaves_ack_i[5]),
+        .wb_clk_i(clk_i), .wb_rst_i(rst_i),
+        .wb_adr_i(ascon_p_adr), .wb_dat_i(ascon_p_dat_w), .wb_dat_o(ascon_p_dat_r),
+        .wb_sel_i(ascon_p_sel), .wb_we_i(ascon_p_we),
+        .wb_stb_i(ascon_p_stb), .wb_cyc_i(ascon_p_cyc),
+        .wb_stall_o(ascon_p_stall), .wb_ack_o(ascon_p_ack),
         .irq_done(irq_ascon)
     );
 endmodule

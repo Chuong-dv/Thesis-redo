@@ -1,6 +1,7 @@
 ../ascon/ascon_connect_wb.v
 ../ascon/ascon.v
 ../ascon/Permutation.v
+../ascon/ascon_wb_adapter.v
 ../rvx_core/mcu_top.v
 ../rvx_core/mcu.v
 ../rvx_core/connection/cpu_connect_wb.v
@@ -18,3 +19,5 @@
 ../rvx_core/rvx/rvx_uart_wb.v
 
 tb/wb_ascon_tb.sv
+tb/wb_ascon_adapter_tb.sv
+tb/tb_soc.sv
