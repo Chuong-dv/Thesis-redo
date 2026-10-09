@@ -8,3 +8,6 @@ sim/xvlog.pb
 *.jou
 xsim.dir/
 *.wdb
+sim/cov/
+sim/cov_report_code/
+sim/merge_covdb/
