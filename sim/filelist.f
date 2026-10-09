@@ -21,3 +21,4 @@
 tb/wb_ascon_tb.sv
 tb/wb_ascon_adapter_tb.sv
 tb/tb_soc.sv
+tb/tb_core.sv

@@ -7,4 +7,4 @@ sim/xvlog.pb
 *.log
 *.jou
 xsim.dir/
-tb_sim.wdb
+*.wdb

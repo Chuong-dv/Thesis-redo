@@ -1,0 +1,16 @@
+rv32mi-p-breakpoint 80001000
+rv32mi-p-csr 80001000
+rv32mi-p-illegal 80001000
+rv32mi-p-instret_overflow 80001000
+rv32mi-p-lh-misaligned 80001000
+rv32mi-p-lw-misaligned 80001000
+rv32mi-p-ma_addr 80001000
+rv32mi-p-ma_fetch 80001000
+rv32mi-p-mcsr 80001000
+rv32mi-p-pmpaddr 80001000
+rv32mi-p-sbreak 80001000
+rv32mi-p-scall 80001000
+rv32mi-p-shamt 80001000
+rv32mi-p-sh-misaligned 80001000
+rv32mi-p-sw-misaligned 80001000
+rv32mi-p-zicntr 80001000
