@@ -1043,7 +1043,7 @@ module rvx_core_wb #(
   //-----------------------------------------------------------------------------------------------//
 
   assign integer_file_write_enable =
-    integer_file_write_request & !flush & !load_pending;
+    integer_file_write_request & !flush & !load_pending & !exception_pending;
 
   integer i;
   always @(posedge clk_i) begin
@@ -1355,13 +1355,13 @@ module rvx_core_wb #(
     else if (clock_enable) begin
       if (instruction_csr_address == MINSTRET && csr_file_write_enable) begin
         if (current_state == STATE_OPERATING)
-          csr_minstret <= {csr_minstret[63:32], csr_write_data} + 1;
+          csr_minstret <= {csr_minstret[63:32], csr_write_data};
         else
           csr_minstret <= {csr_minstret[63:32], csr_write_data};
       end
       else if (instruction_csr_address == MINSTRETH && csr_file_write_enable) begin
         if (current_state == STATE_OPERATING)
-          csr_minstret <= {csr_write_data, csr_minstret[31:0]} + 1;
+          csr_minstret <= {csr_write_data, csr_minstret[31:0]};
         else
           csr_minstret <= {csr_write_data, csr_minstret[31:0]};
       end
@@ -1518,13 +1518,15 @@ module rvx_core_wb #(
       csr_mtval <= 32'h00000000;
     else if (clock_enable) begin
       if(take_trap) begin
-        if(misaligned_address_exception)
-          csr_mtval <= target_address_adder;
+        if(misaligned_load | misaligned_store)
+            csr_mtval <= target_address_adder;          // dia chi byte day du
+        else if(misaligned_instruction_address)
+            csr_mtval <= branch_target_address;         // bit 0 da xoa
         else if (ebreak)
-          csr_mtval <= program_counter;
+            csr_mtval <= program_counter;
         else
-          csr_mtval <= 32'h00000000;
-      end
+            csr_mtval <= 32'h00000000;
+        end
       else if(current_state == STATE_OPERATING && instruction_csr_address == MTVAL && csr_file_write_enable)
         csr_mtval <= csr_write_data;
     end

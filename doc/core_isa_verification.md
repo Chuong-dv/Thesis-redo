@@ -21,13 +21,13 @@ Cách một test báo kết quả: ghi vào `tohost`. Giá trị `1` là đạt,
 | Bộ | Đạt | Fail | Trong đó miễn trừ | Còn mở |
 |---|---|---|---|---|
 | `rv32ui-p` (42 test) | 41 | 1 | 1 | 0 |
-| `rv32mi-p` (16 test) | 13 | 3 | 1 (chờ xác nhận) | 2 |
+| `rv32mi-p` (16 test) | 13 | 3 | 1 | 2 |
 
 Tính theo test áp dụng được: `rv32ui` 41/41; `rv32mi` 13/15 (loại `pmpaddr` do core không có PMP, sau khi xác nhận).
 
 ## 3. Chi tiết các test fail
 
-### 3.1 `rv32ui-p-ma_data` — MIỄN TRỪ (ĐÃ XÁC NHẬN)
+### 3.1 `rv32ui-p-ma_data` — MIỄN TRỪ 
 
 - **Test kiểm gì:** load/store lệch địa chỉ phải được phần cứng thực hiện và cho kết quả đúng.
 - **Thiết kế của core:** `misaligned_load`/`misaligned_store` gây ngoại lệ (mcause 4 / 6). Đặc tả RISC-V cho phép cả hai cách (thực hiện bằng phần cứng hoặc báo ngoại lệ).
@@ -40,7 +40,7 @@ Tính theo test áp dụng được: `rv32ui` 41/41; `rv32mi` 13/15 (loại `pmp
 - **Test thay thế đang đạt:** `rv32mi-p-lh-misaligned`, `lw-misaligned`, `sh-misaligned`, `sw-misaligned`, `ma_addr` (kiểm đúng `mcause`, `mepc`, `mtval` và không ghi ngược `rd`).
 - **Ngày:** `07/10/2026`
 
-### 3.2 `rv32mi-p-pmpaddr` — MIỄN TRỪ DỰ KIẾN (CHỜ XÁC NHẬN)
+### 3.2 `rv32mi-p-pmpaddr` — MIỄN TRỪ 
 
 - **Test kiểm gì:** ghi `-1` vào `pmpaddr0`, đọc lại để dò độ mịn PMP. Comment đầu file ghi "assumes PMP is available".
 - **Giả thuyết:** core không có PMP (tính năng tùy chọn), nên đọc `pmpaddr0` ra 0 và test fail ở test con số 1.
@@ -50,7 +50,7 @@ Tính theo test áp dụng được: `rv32ui` 41/41; `rv32mi` 13/15 (loại `pmp
     [1930000] TRAP: mcause=11 mtval=00000000 mepc=80000298
     TEST FAILED: tohost = 00000003 (fail o buoc 1)`
     ```
-- **Nếu đúng:** miễn trừ. Ghi tài liệu "core không hỗ trợ PMP".
+- **Miễn trừ**. Ghi tài liệu "core không hỗ trợ PMP".
 
 ### 3.3 `rv32mi-p-instret_overflow` — LỖI CORE MỨC THẤP (CHỜ XÁC NHẬN)
 
@@ -86,7 +86,8 @@ Giữ log của lần fail trước khi sửa, đặt tên `run_<test>_before_fi
 
 | Ngày | Thay đổi RTL (file, dòng) | `rv32ui` | `rv32mi` | Hoàn tác thử có fail lại không | Ghi chú |
 |---|---|---|---|---|---|
-| `9/10/2026` | (chưa sửa; trạng thái cơ sở) | 41/42 | 13/16 | — | |
+| `9/10/2026` | (chưa sửa; trạng thái cơ sở) | 41/42 | 13/16 | - | |
+| `10/10/2026` | Sua loi lenh instret_overflow & ma_fetch             | 41/42 | 15/16 | - | |
 
 ## 5. Phạm vi chưa phủ và việc tiếp theo
 
